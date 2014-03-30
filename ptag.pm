@@ -6,6 +6,10 @@ has 'directory'     => ( is => 'rw', reader => 'get_directory',     writer => 's
 has 'files'         => ( is => 'rw', reader => 'get_files',         writer => 'set_files' );
 has 'search_string' => ( is => 'rw', reader => 'get_search_string', writer => 'set_search_string' );
 
+
+##  method      : process_directory
+##  author      : Felix
+##  description : Main program logic
 sub process_directory
 {
 		my $this          = shift;
@@ -78,7 +82,10 @@ sub search_and_tag
 
 				if( $webservice->found_disc() )
 				{
-						$webservice->tag( $this->get_directory );
+						for my $file ( $this->get_files() )
+						{
+								$webservice->tag( $file );
+						}
 						return 1;
 				}
 		}
