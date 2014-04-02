@@ -4,8 +4,18 @@ use Moose;
 use ptag::album;
 use LWP::Simple;
 use constant SUBSTRING_LENGTH => 5;
+use constant WEBSERVICE_NAME => 'Amazon.com v1.0';
 
 has 'album'    => ( is => 'rw', reader => 'get_album',    writer => 'set_album' );
+
+## Method      : get_name
+## Author      : Felix
+## Description : Returns the webservice string name
+sub get_name
+{
+		my $this = shift;
+		return WEBSERVICE_NAME;
+}
 
 ## Method      : find
 ## Author      : Felix
@@ -21,10 +31,13 @@ sub find
 				my $album = $this->construct_album_from_url( $album_url );
 				if( my $file_track_map = $this->compare($files, $album) )
 				{
+						print "Disc FOUND!!\n";
 						$this->set_album( $album );
 						return { album => $album, file_track_map => $file_track_map };
 				}
+				print ".\n";
 		}
+		print "Disc not found!\n";
 		return 0;
 }
 

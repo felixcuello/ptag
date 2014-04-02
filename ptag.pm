@@ -27,7 +27,8 @@ sub process_directory
 
 		$this->prepare_search_string();
 		$this->read_files();
-
+	
+		print PTAG_VERSION ."\n";
 		return $this->search_and_tag();
 }
 
@@ -84,8 +85,11 @@ sub search_and_tag
 		my $this = shift;
 		for my $webservice ( @{$this->get_webservices} )
 		{
+				print "Using ".$webservice->get_name()."\n";
+				print "Looking for albums...\n";
 				if( my $result = $webservice->find($this->get_search_string(), $this->get_files) )
 				{
+						print "Tagging disc...\n";
 						my $tracks = $result->{album}->get_tracks();
 						my $files  = $this->get_files();
 
@@ -138,6 +142,8 @@ sub write_cover
 		my $this = shift;
 		my $filename = shift;
 		my $cover    = shift;
+
+		MP3::Tag->config("write_v24" => 1);
 		my $mp3 = MP3::Tag->new( $filename );
 
 		my $id3;
@@ -157,7 +163,7 @@ sub write_cover
     }
 
 		my $frameids = $id3->get_frame_ids();
-		if( exists $$frameids{APIC})
+		if( exists $frameids->{APIC})
 		{
 				$id3->change_frame( APIC, HEADER, $cover );
 		}
@@ -165,6 +171,8 @@ sub write_cover
 		{   
 				$id3->add_frame(APIC, HEADER, $cover );
 		}
+
+		$id3->write_tag();
     $mp3->update_tags();
     $mp3->close();
 }
