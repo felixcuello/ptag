@@ -9,9 +9,11 @@ my $directory = '.';
 my $artist;
 my $year;
 my $album;
+my $search;
 
 GetOptions
    		(
+     "search=s"    => \$search,
 		 "directory=s" => \$directory,
 		 "artist=s"    => \$artist,
 		 "year=i"      => \$year,
@@ -19,7 +21,7 @@ GetOptions
 		);
 
 my $ptag = ptag->new();
-if( $ptag->process_directory($directory, $artist, $album, $year) )
+if( $ptag->process_directory($search, $directory, $artist, $album, $year) )
 {
 		print "Disc was tagged!\n";
 }

@@ -4,6 +4,7 @@ use Moose;
 use MP3::Tag;
 use Data::Dumper;
 use constant PTAG_VERSION => 'PerlTAG 1.0 (beta)';
+use constant MINIMUM_SEARCH_STRING_LENGTH => 5;
 use constant APIC => "APIC";
 use constant TYPE => "jpg";
 use constant HEADER => ( chr(0x0) , "image/" . TYPE , chr(0x3), "Cover Image");
@@ -19,17 +20,18 @@ has 'search_string' => ( is => 'rw', reader => 'get_search_string', writer => 's
 sub process_directory
 {
 		my $this          = shift;
+		my $search_string = shift || die("Search string is mandatory\n");
 		my $directory     = shift || die("Directory is mandatory\n");
-		my $search_string = shift || undef;
+		my $artist        = shift;
+		my $album_name    = shift;
+		my $year          = shift;
 
 		$this->set_directory( $directory );
-		$this->set_search_string( $search_string );
-
-		$this->prepare_search_string();
+		$this->prepare_search_string($search_string, $directory);
 		$this->read_files();
 	
 		print PTAG_VERSION ."\n";
-		return $this->search_and_tag();
+		return $this->search_and_tag($artist, $album_name, $year);
 }
 
 
@@ -39,19 +41,23 @@ sub process_directory
 sub prepare_search_string
 {
 		my $this = shift;
+		my $search_string = shift;
+		my $directory = shift;
 
-		my $directory     = $this->get_directory();
-		my $search_string = $this->get_search_string();
-
-		if( length($directory) < 5 && not defined $search_string )
-		{
-				print "Sorry Adele and your '19' & '21' discs, but...\n";
-				die("It's impossible to get anything without a search string and less than a 5 bytes long directory name!\n");
-		}
-		elsif( not defined $search_string )
+		if( length($search_string) < MINIMUM_SEARCH_STRING_LENGTH )
 		{
 				my @cols = split /\//, $directory;
-				$this->set_search_string( $cols[$#cols] );
+				$search_string = $cols[$#cols];
+
+				if( length($search_string) < MINIMUM_SEARCH_STRING_LENGTH )
+				{
+						print "Sorry Adele and your '19' & '21' discs, but...\n";
+						die("It's impossible to get anything without a search string and less than a 5 bytes long directory name!\n");
+				}
+		}
+		else
+		{
+				$this->set_search_string( $search_string );
 		}
 }
 
@@ -83,6 +89,10 @@ sub read_files
 sub search_and_tag
 {
 		my $this = shift;
+		my $artist        = shift || undef;
+		my $album_name    = shift || undef;
+		my $year          = shift || undef;
+
 		for my $webservice ( @{$this->get_webservices} )
 		{
 				print "Using ".$webservice->get_name()."\n";
@@ -90,6 +100,11 @@ sub search_and_tag
 				if( my $result = $webservice->find($this->get_search_string(), $this->get_files) )
 				{
 						print "Tagging disc...\n";
+
+						$result->{album}->set_artist($artist) if( defined $artist );
+						$result->{album}->set_name($album_name) if( defined $album_name );
+						$result->{album}->set_year($year) if( defined $year );
+
 						my $tracks = $result->{album}->get_tracks();
 						my $files  = $this->get_files();
 

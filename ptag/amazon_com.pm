@@ -99,9 +99,7 @@ sub construct_album_from_url
 				## ----------------------
 				if( $line =~ /\{"initial":\[\{".+?":"(.+?)"/ )
 				{
-						open( COVER, ">cover.jpg" );
 						$album->set_cover( get( $1 ) );
-						close( COVER );
 				}
 
 
