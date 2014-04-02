@@ -1,6 +1,12 @@
 package ptag;
 
 use Moose;
+use MP3::Tag;
+use Data::Dumper;
+use constant PTAG_VERSION => 'PerlTAG 1.0 (beta)';
+use constant APIC => "APIC";
+use constant TYPE => "jpg";
+use constant HEADER => ( chr(0x0) , "image/" . TYPE , chr(0x3), "Cover Image");
 
 has 'directory'     => ( is => 'rw', reader => 'get_directory',     writer => 'set_directory' );
 has 'files'         => ( is => 'rw', reader => 'get_files',         writer => 'set_files' );
@@ -78,19 +84,143 @@ sub search_and_tag
 		my $this = shift;
 		for my $webservice ( @{$this->get_webservices} )
 		{
-				$webservice->find($this->get_search_string(), $this->get_files);
-
-				if( $webservice->found_disc() )
+				if( my $result = $webservice->find($this->get_search_string(), $this->get_files) )
 				{
-						for my $file ( $this->get_files() )
+						my $tracks = $result->{album}->get_tracks();
+						my $files  = $this->get_files();
+
+						for( my $i=0; $i<=$#{$files}; ++$i )
 						{
-								$webservice->tag( $file );
+								$this->tag( $files->[$i], $result->{album}, $result->{file_track_map}{$i} );
 						}
 						return 1;
 				}
 		}
 
 		return 0;
+}
+
+
+
+##  method      : tag
+##  author      : Felix
+##  Description : Tags a file given a filename, $album and track position
+sub tag
+{
+		my $this = shift;
+		my $filename     = shift || die("filename is mandatory\n");
+		my $album        = shift || die("album is mandatory\n");
+		my $track_number = shift;
+
+		my $directory    = $this->get_directory();
+		
+		$filename = "${directory}/${filename}";
+
+		$this->clean_tags( $filename );
+		$this->write_tags( $filename, $album, $track_number );
+		if( my $cover = $album->get_cover() )
+		{
+				$this->write_cover( $filename, $cover );	
+				open( COVER, ">$directory/cover.jpg" );
+				print COVER $cover;
+				close( COVER );
+		}
+
+}
+
+
+
+##  method      : write_cover
+##  author      : Felix
+##  Description : Adds cover image to the file
+sub write_cover
+{
+		my $this = shift;
+		my $filename = shift;
+		my $cover    = shift;
+		my $mp3 = MP3::Tag->new( $filename );
+
+		my $id3;
+		if( exists $mp3->{ID3v2} )
+    {   
+        $id3 = $mp3->{ID3v2};
+    }
+    else
+    {   
+        $id3 = $mp3->new_tag('ID3v2');
+    }
+		
+		my $frames = $id3->supported_frames();
+    if( not exists $frames->{APIC} )
+    {   
+        die("Error " . __LINE__ . " :-(\n");
+    }
+
+		my $frameids = $id3->get_frame_ids();
+		if( exists $$frameids{APIC})
+		{
+				$id3->change_frame( APIC, HEADER, $cover );
+		}
+		else
+		{   
+				$id3->add_frame(APIC, HEADER, $cover );
+		}
+    $mp3->update_tags();
+    $mp3->close();
+}
+
+
+
+##  method      : write_tags
+##  author      : Felix
+##  Description : Write the tags to the file
+sub write_tags
+{
+		my $this = shift;
+		my $filename = shift;
+		my $album = shift;
+		my $track_number = shift;
+
+		my $track = $album->get_track($track_number);
+ 		my $mp3  = MP3::Tag->new( $filename );
+
+		$mp3->update_tags(
+				{
+						title   => $track->get_name(),
+						album   => $album->get_name(),
+						artist  => $album->get_artist(),
+						year    => $album->get_year(),
+						genre   => undef,
+						comment => PTAG_VERSION,
+				}
+				);
+}
+
+
+##  method      : clean_tags
+##  author      : Felix
+##  Description : Clean tags from file
+sub clean_tags
+{
+		my $this = shift;
+		my $filename = shift;
+		
+		my $mp3 = MP3::Tag->new( $filename );
+		$mp3->get_tags();
+		if ( exists $mp3->{ID3v2} )
+		{
+        my $id3v2         = $mp3->{ID3v2};
+        my $frame_ids_hash = $id3v2->get_frame_ids();
+				for my $frame ( keys %$frame_ids_hash )
+				{
+						$id3v2->remove_frame($frame);
+						$id3v2->write_tag();
+				}
+		}
+		$mp3->{ID3v1}->remove_tag if exists $mp3->{ID3v1};
+		$mp3->{ID3v2}->remove_tag if exists $mp3->{ID3v2};
+		$mp3->update_tags();
+		$mp3->close();
 }
 
 
