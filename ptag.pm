@@ -121,7 +121,7 @@ sub tag
 		if( my $cover = $album->get_cover() )
 		{
 				$this->write_cover( $filename, $cover );	
-				open( COVER, ">$directory/cover.jpg" );
+				open( COVER, ">$directory/folder.jpg" );
 				print COVER $cover;
 				close( COVER );
 		}
