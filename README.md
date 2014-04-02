@@ -1,14 +1,14 @@
 ptag
 ====
 
-Perl MP3 Tag
+PerlTAG is an easy way to tag your MP3. That's all... I just wanted to learn a bit of Moose, and to "beautify" what I did in ruby some time ago.
 
-This is the simplest mp3 tag for the command line
 
 
 Libraries Required
 ==================
 
 Moose
+
 MP3::Tag
 
