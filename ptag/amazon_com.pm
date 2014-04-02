@@ -26,6 +26,7 @@ sub find
 		my $search_string = shift || die('Search string is mandatory');
 		my $files         = shift || die('Files are mandatory');
 
+		print "Using: '$search_string' as search pattern!\n";
 		for my $album_url ( @{$this->query($search_string)} )
 		{
 				my $album = $this->construct_album_from_url( $album_url );

@@ -130,6 +130,10 @@ sub tag
 				close( COVER );
 		}
 
+		my $track = $album->get_track($track_number);
+		my $new_name = sprintf("%s/%02d. %s.mp3", $directory, $track_number+1, $track->get_name());
+		rename( $filename, $new_name );
+		rename( $directory, sprintf("%s (%d)", $album->get_name(), $album->get_year()) );
 }
 
 
