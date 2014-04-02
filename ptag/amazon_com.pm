@@ -5,6 +5,7 @@ use ptag::album;
 use LWP::Simple;
 use constant SUBSTRING_LENGTH => 5;
 use constant WEBSERVICE_NAME => 'Amazon.com v1.0';
+use constant DEBUG => 0;
 
 has 'album'    => ( is => 'rw', reader => 'get_album',    writer => 'set_album' );
 
@@ -29,15 +30,22 @@ sub find
 		print "Using: '$search_string' as search pattern!\n";
 		for my $album_url ( @{$this->query($search_string)} )
 		{
+				print "Url: $album_url\n" if DEBUG;
 				my $album = $this->construct_album_from_url( $album_url );
 				if( my $file_track_map = $this->compare($files, $album) )
 				{
-						print "Disc FOUND!!\n";
+						print "Tracks & Disc FOUND!!\n";
 						$this->set_album( $album );
 						return { album => $album, file_track_map => $file_track_map };
 				}
+				else
+				{
+						print "Disc FOUND! [without tracks]\n";
+						return { album => $album, file_track_map => {} };
+				}
 				print ".\n";
 		}
+
 		print "Disc not found!\n";
 		return 0;
 }
@@ -54,6 +62,12 @@ sub query
 
 		$search_string =~ s/ /+/g;
 		my $content = get("http://www.amazon.com/s/ref=nb_sb_noss?field-keywords=$search_string");
+		if( DEBUG )
+		{
+				open( A, ">result_content.html" );
+				print A $content;
+				close( A );
+		}
 		my @html_lines = split /\n/, $content;
 		for my $line ( @html_lines )
 		{
@@ -76,22 +90,39 @@ sub construct_album_from_url
 		my $content = get( $album_url );
 		my @html_lines = split /\n/, $content;
 
+		if( DEBUG )
+		{
+				open( A, ">disc_content.html" );
+				print A $content;
+				close( A );
+		}
+
 		my $album = ptag::album->new();
 		for my $line ( @html_lines )
 		{
 				##  Album Name
 				## ----------------------
-				if( $line =~ /<span id="btAsinTitle"\s*>(.+?)<span/i )
+				if( $line =~ /<span id="btAsinTitle"\s*>(.+?)</i )
 				{
 						$album->set_name( $1 );
+						print "Album: $1\n" if DEBUG;
 				}
 
 
 				##  Artist
 				## ----------------------
-				if( !$album->get_artist() && $line =~ /<td class="titleCol"><a href=".+?">(.+?)<\/a><\/td>/ )
+				if( 
+						!$album->get_artist()
+						&& 
+						(
+						 $line =~ /<td class="titleCol"><a href=".+?">(.+?)<\/a><\/td>/i
+						 or $line =~ /<a href=".+?">(.+?)<\/a><span class="byLinePipe">/i 
+						 or $line =~ /<a href=".+?artist=.+?">(.+?)<\/a>\s*<span class="byLinePipe">\(Artist\)/i
+						)
+						)
 				{
 						$album->set_artist( $1 );
+						print "Artist: $1\n" if DEBUG;
 				}
 
 
@@ -100,6 +131,7 @@ sub construct_album_from_url
 				if( $line =~ /\{"initial":\[\{".+?":"(.+?)"/ )
 				{
 						$album->set_cover( get( $1 ) );
+						print "Cover: $1\n" if DEBUG;
 				}
 
 
@@ -112,13 +144,20 @@ sub construct_album_from_url
 						$track->set_number( $1 );
 						$track->set_name( $2 );
 						$album->add_track( $track );
+						print "Track: $1. $2\n" if DEBUG;
 				}
 
 
 				##  Year
 				## ----------------------
-				if( $line =~ /<li><b>.+?Date:<\/b>\s*([0-9]+)<\/li>/i )
+				if( $line =~ /<li><b>.+?Date:<\/b>\s*([0-9]+)<\/li>/i ) # Format => Release Date: Year
 				{
+						print "Year: $1\n" if DEBUG;
+						$album->set_year( $1 );
+				}
+				if( $line =~ /<li><b>audio cd<\/b>\s*\([a-z]+ [0-9]+, ([0-9]+)\)<\/li>/i )  # Format => Month 1st, year
+				{
+						print "Year: $1\n" if DEBUG;
 						$album->set_year( $1 );
 				}
 		}

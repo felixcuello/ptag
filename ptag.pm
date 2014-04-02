@@ -108,6 +108,24 @@ sub search_and_tag
 						my $tracks = $result->{album}->get_tracks();
 						my $files  = $this->get_files();
 
+						##  This happens when the disc has been found, but it has no tracks
+						## --------------------------
+						if( not exists $result->{file_track_map}{0} )
+						{
+								##  Add tracks using file name information + album information
+								## ---------------------------
+								for( my $i=0; $i<=$#{$files}; ++$i )
+								{
+										my $track = ptag::track->new();
+										$track->set_number( $i+1 );
+										my $track_name = $files->[$i];
+										$track_name =~ s/[0-9]*\s*.\s*(.+)\.mp3\s*$/$1/i;
+										$track->set_name( $track_name );
+										$result->{album}->add_track( $track );
+										$result->{file_track_map}{$i} = $i;
+								}
+						}
+
 						for( my $i=0; $i<=$#{$files}; ++$i )
 						{
 								$this->tag( $files->[$i], $result->{album}, $result->{file_track_map}{$i} );
