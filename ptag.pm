@@ -118,9 +118,20 @@ sub search_and_tag
 								{
 										my $track = ptag::track->new();
 										$track->set_number( $i+1 );
+
 										my $track_name = $files->[$i];
-										$track_name =~ s/[0-9]*\s*.\s*(.+)\.mp3\s*$/$1/i;
-										$track->set_name( $track_name );
+										my $track_number = $files->[$i];
+
+										$track_number =~ s/\s*([0-9]+)/$1/;
+										$track_name =~ s/[0-9]*\s*[^a-z]?\s*(.+)\.mp3\s*$/$1/i;
+										
+										my @words = split /\s/, $track_name;
+										for my $word ( @words )
+										{
+												$word = ucfirst( $word );
+										}
+
+										$track->set_name( (join ' ', @words) );
 										$result->{album}->add_track( $track );
 										$result->{file_track_map}{$i} = $i;
 								}
@@ -130,6 +141,8 @@ sub search_and_tag
 						{
 								$this->tag( $files->[$i], $result->{album}, $result->{file_track_map}{$i} );
 						}
+
+						rename( $this->get_directory(), sprintf("%s (%d)", $result->{album}->get_name(), $result->{album}->get_year()) );
 						return 1;
 				}
 		}
@@ -166,7 +179,6 @@ sub tag
 		my $track = $album->get_track($track_number);
 		my $new_name = sprintf("%s/%02d. %s.mp3", $directory, $track_number+1, $track->get_name());
 		rename( $filename, $new_name );
-		rename( $directory, sprintf("%s (%d)", $album->get_name(), $album->get_year()) );
 }
 
 
@@ -277,9 +289,11 @@ sub get_webservices
 		my $this = shift;
 
 		use ptag::amazon_com;
-		my $amazon = ptag::amazon_com->new();
+		use ptag::amazon_co_uk;
+		my $amazon_com = ptag::amazon_com->new();
+		my $amazon_co_uk = ptag::amazon_co_uk->new();
 
-		return [ $amazon ];
+		return [ $amazon_com, $amazon_co_uk ];
 }
 
 1;

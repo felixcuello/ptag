@@ -1,10 +1,10 @@
-package ptag::amazon_com;
+package ptag::amazon_co_uk;
 
 use Moose;
 use ptag::album;
 use LWP::Simple;
 use constant SUBSTRING_LENGTH => 5;
-use constant WEBSERVICE_NAME => 'Amazon.com v1.0';
+use constant WEBSERVICE_NAME => 'Amazon.co.uk v1.0';
 use constant DEBUG => 2; # 1 => just print | 2 => print + html from the LWP::Simple
 
 has 'album'    => ( is => 'rw', reader => 'get_album',    writer => 'set_album' );
@@ -61,7 +61,7 @@ sub find
 
 ## Method      : query
 ## Author      : Felix
-## Description : Query Amazon.com for a list of album URLs
+## Description : Query Amazon.co.uk for a list of album URLs
 sub query
 {
 		my $this = shift;
@@ -69,7 +69,7 @@ sub query
 		my $arrayref_of_album_urls = [];
 
 		$search_string =~ s/ /+/g;
-		my $content = get("http://www.amazon.com/s/ref=nb_sb_noss?field-keywords=$search_string");
+		my $content = get("http://www.amazon.co.uk/s/ref=nb_sb_noss?field-keywords=$search_string");
 		if( DEBUG > 1 )
 		{
 				open( A, ">result_content.html" );
@@ -219,10 +219,10 @@ sub compare
 				my $tracks = $album->get_tracks();
 				for( my $j=0; $j<=$#{$tracks}; ++$j )
 				{
+						my $found = 0;
 						my $track = $tracks->[$j]->get_name();
 						my $file_normalized  = $this->normalize_string( $file );
 						my $track_normalized = $this->normalize_string( $track );
-						my $found = 0;
 
 						##  Perfect match
 						## ---------------
@@ -254,8 +254,7 @@ sub compare
 								$compare_map->{$i} = $j;
 								last;
 						}
-
-						$found_disc &= $found;
+						$found_disc &= 1;
 				}
 		}
 
