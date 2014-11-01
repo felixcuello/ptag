@@ -207,7 +207,25 @@ sub construct_album_from_url
 						$album->set_year( $1 );
 				}
 		}
-
+    
+    unless( $album->get_cover() )
+    {
+      ## Read cover from directory if available
+      if( -e './folder.jpg' )
+      {
+        open(COVER, './folder.jpg');
+        binmode (COVER);
+        my $cover;
+        read (COVER, $cover, 1024*1024); # file can't be bigger than 1mb :-), sorry!
+        close(COVER);
+        $album->set_cover($cover);
+        print STDERR "**WARNING**  Cover was picked up from ./folder.jpg!\n";
+      }
+      else
+      {
+        print STDERR "**WARNING**  No cover available and no folder.jpg found in this directory!\n";
+      }
+    }
 		return $album;
 }
 
