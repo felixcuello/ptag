@@ -8,7 +8,8 @@ PerlTAG is an easy way to tag your MP3. That's all... I just wanted to learn a b
 Libraries Required
 ==================
 
-Moose
 
-MP3::Tag
+MP3::Tag & Moose, they can be installed like this
+
+perl -MCPAN -e "CPAN::Shell->notest('install', 'MP3::Tag', 'Moose')"
 

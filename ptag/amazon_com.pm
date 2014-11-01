@@ -5,7 +5,7 @@ use ptag::album;
 use LWP::Simple;
 use constant SUBSTRING_LENGTH => 5;
 use constant WEBSERVICE_NAME => 'Amazon.com v1.0';
-use constant DEBUG => 2; # 1 => just print | 2 => print + html from the LWP::Simple
+use constant DEBUG => 0; # 1 => just print | 2 => print + html from the LWP::Simple
 
 has 'album'    => ( is => 'rw', reader => 'get_album',    writer => 'set_album' );
 
@@ -79,10 +79,21 @@ sub query
 		my @html_lines = split /\n/, $content;
 		for my $line ( @html_lines )
 		{
-				if( $line =~ /<div class="productTitle"><a href="(.+?)">\s*([^<]+)\s*<\/a>/i )
-				{
-						push @{$arrayref_of_album_urls}, $1;
-				}
+		    $line =~ s/<a/\n<a/g;
+		    $line =~ s/<span/\n<span/g;
+
+		    # Pre-2014 way
+		    if( $line =~ /<div class="productTitle"><a href="(.+?)">\s*([^<]+)\s*<\/a>/i )
+		    {
+			push @{$arrayref_of_album_urls}, $1;
+		    }
+
+		    ## End-2014
+		    if( $line =~ /<a class=".+?" title=".+?" href="(.+?)"><h2 class=".+?">(.+?)<\/h2><\/a>/ )
+		    {
+			push @{$arrayref_of_album_urls}, $1;
+		    }
+
 		}
 		return $arrayref_of_album_urls;
 }
